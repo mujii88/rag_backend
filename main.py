@@ -101,16 +101,18 @@ print(stats)
 async def root():
     return {"message": "Vector DB Search API is running"}
 
+from pinecone import Pinecone, inference
+
 @app.post("/search", response_model=SearchResponse)
 async def search(search_query: SearchQuery):
     try:
-        # Generate embedding for the query using the same model as index
-        query_embedding = pc.inference.embed(
+        # Generate embedding for the query
+        query_embedding = inference.embed(
             model="llama-text-embed-v2",
             inputs=[search_query.query]
         ).data[0].values
 
-        # Query Pinecone with the real embedding
+        # Query Pinecone with embedding
         search_results = dense_index.query(
             namespace="example-namespace",
             top_k=search_query.top_k,
