@@ -71,10 +71,10 @@ for item in [
     # ---- Problem Solving ----
     { "id": "rec18", "text": "Solved 500+ coding problems across LeetCode, GFG, and InterviewBit to strengthen problem-solving and algorithmic skills.", "category": "problem_solving" }
 ]:
-    # Generate a simple embedding (in a real app, you'd use a proper embedding model)
-    # This is just a placeholder - using 1024 dimensions to match the Pinecone index
-    # In production, replace with actual embedding generation
-    embedding = [0.0] * 1024  # Using 1024 dimensions to match the index
+    # Generate a simple random embedding for testing
+    # In production, replace with actual embedding generation from a model
+    import random
+    embedding = [random.uniform(-0.5, 0.5) for _ in range(1024)]  # Random values between -0.5 and 0.5
     
     vectors.append({
         'id': item['id'],
@@ -110,10 +110,10 @@ async def root():
 @app.post("/search", response_model=SearchResponse)
 async def search(search_query: SearchQuery):
     try:
-        # Generate a simple embedding (in a real app, you'd use the same embedding model as above)
-        # This is just a placeholder - using 1024 dimensions to match the index
-        # In production, replace with actual embedding generation
-        query_embedding = [0.0] * 1024  # Must match the dimension of your index (1024)
+        # Generate a simple random embedding for the query
+        # In production, use the same embedding model as for the documents
+        import random
+        query_embedding = [random.uniform(-0.5, 0.5) for _ in range(1024)]  # Match dimension (1024)
         
         # Search the index
         results = index.query(
