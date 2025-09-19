@@ -72,8 +72,9 @@ for item in [
     { "id": "rec18", "text": "Solved 500+ coding problems across LeetCode, GFG, and InterviewBit to strengthen problem-solving and algorithmic skills.", "category": "problem_solving" }
 ]:
     # Generate a simple embedding (in a real app, you'd use a proper embedding model)
-    # This is just a placeholder - replace with actual embedding generation
-    embedding = [0.0] * 1536  # Assuming 1536 dimensions for the embedding
+    # This is just a placeholder - using 1024 dimensions to match the Pinecone index
+    # In production, replace with actual embedding generation
+    embedding = [0.0] * 1024  # Using 1024 dimensions to match the index
     
     vectors.append({
         'id': item['id'],
@@ -110,8 +111,9 @@ async def root():
 async def search(search_query: SearchQuery):
     try:
         # Generate a simple embedding (in a real app, you'd use the same embedding model as above)
-        # This is just a placeholder - replace with actual embedding generation
-        query_embedding = [0.0] * 1536  # Should match the dimension of your index
+        # This is just a placeholder - using 1024 dimensions to match the index
+        # In production, replace with actual embedding generation
+        query_embedding = [0.0] * 1024  # Must match the dimension of your index (1024)
         
         # Search the index
         results = index.query(
