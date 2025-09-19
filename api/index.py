@@ -5,6 +5,7 @@ from typing import List, Optional
 from pinecone import Pinecone, ServerlessSpec
 import os
 import json
+import requests
 from typing import Dict, Any
 
 app = FastAPI()
@@ -51,14 +52,26 @@ async def root():
 async def search(search_query: SearchQuery):
     try:
         try:
-            # Generate embedding using llama-text-embed-v2 model
-            response = pc.embed(
-                model="llama-text-embed-v2",
-                input=search_query.query
+            # Generate embedding using llama-text-embed-v2 model via HTTP request
+            headers = {
+                'Content-Type': 'application/json',
+                'Api-Key': 'pcsk_6kDCmj_GEp6thxT7pAzsQ7iSDJ7sZDRtLNsQ78QQ8FLpqcR4cdHnyFgK1bV3bL4RrWLHYW'
+            }
+            
+            response = requests.post(
+                'https://api.pinecone.io/vectors/embed',
+                headers=headers,
+                json={
+                    'model': 'llama-text-embed-v2',
+                    'input': search_query.query
+                }
             )
             
+            if response.status_code != 200:
+                raise Exception(f"Failed to generate embedding: {response.text}")
+                
             # Extract the embedding
-            query_embedding = response.data[0].embedding
+            query_embedding = response.json()['data'][0]['embedding']
             
         except Exception as e:
             print(f"Error generating embedding: {str(e)}")
