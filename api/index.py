@@ -5,7 +5,8 @@ from typing import List, Optional
 from pinecone import Pinecone, ServerlessSpec
 import os
 import json
-import requests
+import http.client
+import ssl
 from typing import Dict, Any
 
 app = FastAPI()
@@ -52,26 +53,32 @@ async def root():
 async def search(search_query: SearchQuery):
     try:
         try:
-            # Generate embedding using llama-text-embed-v2 model via HTTP request
+            # Generate embedding using llama-text-embed-v2 model via http.client
+            conn = http.client.HTTPSConnection("api.pinecone.io", context=ssl._create_unverified_context())
+            
+            payload = json.dumps({
+                'model': 'llama-text-embed-v2',
+                'input': search_query.query
+            })
+            
             headers = {
                 'Content-Type': 'application/json',
-                'Api-Key': 'pcsk_6kDCmj_GEp6thxT7pAzsQ7iSDJ7sZDRtLNsQ78QQ8FLpqcR4cdHnyFgK1bV3bL4RrWLHYW'
+                'Api-Key': 'pcsk_6kDCmj_GEp6thxT7pAzsQ7iSDJ7sZDRtLNsQ78QQ8FLpqcR4cdHnyFgK1bV3bL4RrWLHYW',
+                'accept': 'application/json'
             }
             
-            response = requests.post(
-                'https://api.pinecone.io/vectors/embed',
-                headers=headers,
-                json={
-                    'model': 'llama-text-embed-v2',
-                    'input': search_query.query
-                }
-            )
+            conn.request("POST", "/vectors/embed", payload, headers)
+            res = conn.getresponse()
+            data = res.read().decode('utf-8')
             
-            if response.status_code != 200:
-                raise Exception(f"Failed to generate embedding: {response.text}")
-                
+            if res.status != 200:
+                error_detail = f"Status: {res.status}, Response: {data}"
+                raise Exception(f"Failed to generate embedding: {error_detail}")
+            
             # Extract the embedding
-            query_embedding = response.json()['data'][0]['embedding']
+            response_data = json.loads(data)
+            query_embedding = response_data['data'][0]['embedding']
+            conn.close()
             
         except Exception as e:
             print(f"Error generating embedding: {str(e)}")
