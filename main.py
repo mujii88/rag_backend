@@ -43,6 +43,9 @@ if not pc.has_index(index_name):
         }
     )
 
+# Connect to the index
+index = pc.Index(index_name)
+
 
 records = [
     # ---- Profile ----
@@ -113,7 +116,7 @@ async def search(search_query: SearchQuery):
         ).data[0].values
 
         # Query Pinecone with embedding
-        search_results = dense_index.query(
+        search_results = index.query(
             namespace="example-namespace",
             top_k=search_query.top_k,
             vector=query_embedding,

@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
-from pinecone import Pinecone
+from pinecone import Pinecone, inference
 import os
 
 app = FastAPI()
@@ -41,12 +41,17 @@ async def root():
 @app.post("/search", response_model=SearchResponse)
 async def search(search_query: SearchQuery):
     try:
-        # Search the dense index
+        # Generate embedding for the query
+        query_embedding = inference.embed(
+            model="llama-text-embed-v2",
+            inputs=[search_query.query]
+        ).data[0].values
+
+        # Search the dense index with the query embedding
         search_results = dense_index.query(
             namespace="example-namespace",
             top_k=search_query.top_k,
-            vector=[0] * 1024,  # Dummy vector with 1024 dimensions to match the index
-            filter={"chunk_text": {"$ne": ""}},
+            vector=query_embedding,
             include_metadata=True,
             include_values=False
         )
