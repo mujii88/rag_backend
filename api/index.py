@@ -52,7 +52,7 @@ async def root():
 @app.post("/search", response_model=SearchResponse)
 async def search(search_query: SearchQuery):
     try:
-        results = index.search(
+        results = dense_index.search(
         namespace="example-namespace",
         query={
         "inputs": {"text": search_query.query},
