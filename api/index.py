@@ -20,7 +20,7 @@ app.add_middleware(
 )
 
 # Initialize Pinecone client
-pc = Pinecone(api_key="YOUR_API_KEY")
+pc = Pinecone(api_key="pcsk_2MTi31_JJJ9LJEjuh3SKo8MQ11Qdb5nTZKWE76xmhafRQPKqexE8ZrojiybDfQHTod3CMy")
 
 # Define index name and initialize index
 index_name = "quickstart-py"
