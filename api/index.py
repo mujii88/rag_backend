@@ -4,8 +4,9 @@ from pydantic import BaseModel
 from typing import List, Optional
 from pinecone import Pinecone
 import os
-import requests
 import json
+import http.client
+import ssl
 
 app = FastAPI()
 
@@ -43,23 +44,31 @@ async def root():
 @app.post("/search", response_model=SearchResponse)
 async def search(search_query: SearchQuery):
     try:
-        # Generate embedding for the query using HTTP request
-        response = requests.post(
-            "https://api.pinecone.io/vectors/embed",
-            headers={
-                "Content-Type": "application/json",
-                "Api-Key": "pcsk_6kDCmj_GEp6thxT7pAzsQ7iSDJ7sZDRtLNsQ78QQ8FLpqcR4cdHnyFgK1bV3bL4RrWLHYW"
-            },
-            json={
-                "model": "llama-text-embed-v2",
-                "inputs": [search_query.query]
-            }
-        )
+        # Generate embedding for the query using http.client
+        conn = http.client.HTTPSConnection("api.pinecone.io", context=ssl._create_unverified_context())
+        payload = json.dumps({
+            "model": "llama-text-embed-v2",
+            "inputs": [search_query.query]
+        })
+        headers = {
+            'Content-Type': 'application/json',
+            'Api-Key': 'pcsk_6kDCmj_GEp6thxT7pAzsQ7iSDJ7sZDRtLNsQ78QQ8FLpqcR4cdHnyFgK1bV3bL4RrWLHYW'
+        }
         
-        if response.status_code != 200:
-            raise HTTPException(status_code=500, detail="Failed to generate embeddings")
+        try:
+            conn.request("POST", "/vectors/embed", payload, headers)
+            res = conn.getresponse()
+            data = res.read()
             
-        query_embedding = response.json()["data"][0]["values"]
+            if res.status != 200:
+                raise HTTPException(status_code=500, detail="Failed to generate embeddings")
+                
+            response_data = json.loads(data)
+            query_embedding = response_data["data"][0]["values"]
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error calling Pinecone API: {str(e)}")
+        finally:
+            conn.close()
 
         # Search the dense index with the query embedding
         search_results = dense_index.query(
