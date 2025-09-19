@@ -24,7 +24,7 @@ dense_index = pc.Index(index_name)
 # Request/Response models
 class SearchQuery(BaseModel):
     query: str
-    top_k: Optional[int] = 1
+    top_k: Optional[int] = 3
 
 class SearchResult(BaseModel):
     text: str
