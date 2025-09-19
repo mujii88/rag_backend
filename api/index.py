@@ -2,8 +2,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
-from pinecone import Pinecone, inference
+from pinecone import Pinecone
 import os
+import requests
+import json
 
 app = FastAPI()
 
@@ -41,11 +43,23 @@ async def root():
 @app.post("/search", response_model=SearchResponse)
 async def search(search_query: SearchQuery):
     try:
-        # Generate embedding for the query
-        query_embedding = inference.embed(
-            model="llama-text-embed-v2",
-            inputs=[search_query.query]
-        ).data[0].values
+        # Generate embedding for the query using HTTP request
+        response = requests.post(
+            "https://api.pinecone.io/vectors/embed",
+            headers={
+                "Content-Type": "application/json",
+                "Api-Key": "pcsk_6kDCmj_GEp6thxT7pAzsQ7iSDJ7sZDRtLNsQ78QQ8FLpqcR4cdHnyFgK1bV3bL4RrWLHYW"
+            },
+            json={
+                "model": "llama-text-embed-v2",
+                "inputs": [search_query.query]
+            }
+        )
+        
+        if response.status_code != 200:
+            raise HTTPException(status_code=500, detail="Failed to generate embeddings")
+            
+        query_embedding = response.json()["data"][0]["values"]
 
         # Search the dense index with the query embedding
         search_results = dense_index.query(
