@@ -2,12 +2,11 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
-from pinecone import Pinecone, ServerlessSpec
+from pinecone import Pinecone
 import os
 import json
 import http.client
 import ssl
-from typing import Dict, Any
 
 app = FastAPI()
 
@@ -20,13 +19,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Pinecone
-pc = Pinecone(api_key="pcsk_6kDCmj_GEp6thxT7pAzsQ7iSDJ7sZDRtLNsQ78QQ8FLpqcR4cdHnyFgK1bV3bL4RrWLHYW")
+# Initialize Pinecone client
+pc = Pinecone(api_key="YOUR_API_KEY")
 
-# Define index name and configuration
+# Define index name and initialize index
 index_name = "quickstart-py"
-
-# Initialize the index
 dense_index = pc.Index(
     index_name,
     host="https://quickstart-py-ji1hhil.svc.aped-4627-b74a.pinecone.io"
@@ -52,60 +49,59 @@ async def root():
 @app.post("/search", response_model=SearchResponse)
 async def search(search_query: SearchQuery):
     try:
+        # === Step 1: Generate embedding via Pinecone Inference API ===
         try:
-            # Generate embedding using llama-text-embed-v2 model via http.client
-            conn = http.client.HTTPSConnection("api.pinecone.io", context=ssl._create_unverified_context())
-            
+            conn = http.client.HTTPSConnection(
+                "api.pinecone.io", context=ssl._create_unverified_context()
+            )
+
             payload = json.dumps({
-                'model': 'llama-text-embed-v2',
-                'input': search_query.query
+                "model": "llama-text-embed-v2",
+                "inputs": [search_query.query]
             })
-            
+
             headers = {
-                'Content-Type': 'application/json',
-                'Api-Key': 'pcsk_6kDCmj_GEp6thxT7pAzsQ7iSDJ7sZDRtLNsQ78QQ8FLpqcR4cdHnyFgK1bV3bL4RrWLHYW',
-                'accept': 'application/json'
+                "Content-Type": "application/json",
+                "accept": "application/json",
+                "Api-Key": "YOUR_API_KEY"
             }
-            
-            conn.request("POST", "/vectors/embed", payload, headers)
+
+            conn.request("POST", "/embed", payload, headers)
             res = conn.getresponse()
-            data = res.read().decode('utf-8')
-            
+            data = res.read().decode("utf-8")
+
             if res.status != 200:
-                error_detail = f"Status: {res.status}, Response: {data}"
-                raise Exception(f"Failed to generate embedding: {error_detail}")
-            
-            # Extract the embedding
+                raise Exception(f"Failed to generate embedding: {res.status} {data}")
+
             response_data = json.loads(data)
-            query_embedding = response_data['data'][0]['embedding']
+            query_embedding = response_data["data"][0]["values"]  # ✅ correct field
             conn.close()
-            
+
         except Exception as e:
-            print(f"Error generating embedding: {str(e)}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Error generating embedding: {str(e)}"
             )
 
-        # Search the dense index with the query embedding
+        # === Step 2: Query your Pinecone index ===
         search_results = dense_index.query(
-            namespace="example-namespace",
+            namespace="example-namespace",  # change if you use a different namespace
             top_k=search_query.top_k,
             vector=query_embedding,
             include_metadata=True,
             include_values=False
         )
-        
+
         results = []
         for match in search_results.matches:
             results.append(SearchResult(
-                text=match.metadata.get('chunk_text', ''),
-                category=match.metadata.get('category', 'unknown'),
+                text=match.metadata.get("chunk_text", ""),
+                category=match.metadata.get("category", "unknown"),
                 score=match.score
             ))
-            
+
         return {"results": results}
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
