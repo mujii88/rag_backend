@@ -45,7 +45,7 @@ async def search(search_query: SearchQuery):
         search_results = dense_index.query(
             namespace="example-namespace",
             top_k=search_query.top_k,
-            vector=[0] * 384,  # Dummy vector, will be replaced by serverless function
+            vector=[0] * 1024,  # Dummy vector with 1024 dimensions to match the index
             filter={"chunk_text": {"$ne": ""}},
             include_metadata=True,
             include_values=False
